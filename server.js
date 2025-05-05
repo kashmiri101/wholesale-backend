@@ -3,6 +3,13 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
+const { connection } = require('./db');
+const Inquiry =require('./Inquiry')
+
+// adjust path if needed
+const PORT = process.env.PORT || 3001;
+
+// Make sure `db.js` is in the same directory as server.js
 
 const app = express();
 
@@ -19,8 +26,8 @@ const transporter = nodemailer.createTransport({
   port: 587,
   secure: false,
   auth: {
-    user: 'jarred59@ethereal.email',
-    pass: 'uxxzjfTUDGTneMsd5d'
+    user: 'melany.lindgren@ethereal.email',
+    pass: 'rPmGBHw2mrVZjCVe9Z'
   }
 });
 
@@ -29,10 +36,21 @@ app.post('/api/contacts', async (req, res) => {
   try {
     const { firstName, lastName, company, email, inquiry, message } = req.body;
 
-    // Send email notification
+    // Save to PostgreSQL
+    const newInquiry = await Inquiry.create({
+      first_name: firstName,
+      last_name: lastName,
+      company,
+      email,
+      inquiry,
+      message,
+      created_at: new Date() // if not automatically handled
+    });
+
+    // After successful save, send email
     const mailOptions = {
-      from: 'atharh1678@gmail.com', // Sender
-      to: 'atharh1678@gmail.com',   // Receiver
+      from: 'atharh1678@gmail.com',
+      to: 'atharh1678@gmail.com',
       subject: `New Contact Form Submission: ${inquiry}`,
       html: `
         <h3>New Contact Submission</h3>
@@ -49,7 +67,8 @@ app.post('/api/contacts', async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Email sent successfully!'
+      message: 'Data saved and email sent successfully!',
+      data: newInquiry
     });
 
   } catch (err) {
@@ -63,7 +82,7 @@ app.post('/api/contacts', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
+connection();
